@@ -1,0 +1,1856 @@
+// FILE: index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0e27">
+  <meta name="description" content="ProCamera - Professional DSLR-style camera web app">
+  <title>ProCamera</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230a0e27' width='180' height='180'/><circle cx='90' cy='90' r='55' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/camera.css">
+  <link rel="stylesheet" href="css/sliders.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <!-- Main Camera Container -->
+  <div class="camera-viewport">
+    <video id="camera-feed" playsinline autoplay muted></video>
+    <canvas id="canvas-filter"></canvas>
+    
+    <!-- Viewfinder Grid Overlay -->
+    <div class="viewfinder-grid"></div>
+    
+    <!-- Top Status Bar -->
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">ISO</span>
+        <span class="status-value" id="iso-display">100</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">FOCUS</span>
+        <span class="status-value" id="focus-display">AF</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">REC</span>
+        <span class="status-dot" id="rec-indicator"></span>
+      </div>
+    </div>
+    
+    <!-- Bottom Control Panel -->
+    <div class="control-panel">
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-btn active" data-filter="normal">NORMAL</button>
+        <button class="filter-btn" data-filter="cinematic">CINEMA</button>
+        <button class="filter-btn" data-filter="film">FILM</button>
+        <button class="filter-btn" data-filter="sharp">SHARP</button>
+      </div>
+      
+      <!-- Sliders Section -->
+      <div class="sliders-section">
+        <!-- Brightness -->
+        <div class="slider-group">
+          <label class="slider-label">Brightness</label>
+          <div class="slider-track">
+            <input type="range" id="brightness-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="brightness-value">0</span>
+        </div>
+        
+        <!-- Contrast -->
+        <div class="slider-group">
+          <label class="slider-label">Contrast</label>
+          <div class="slider-track">
+            <input type="range" id="contrast-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="contrast-value">0</span>
+        </div>
+        
+        <!-- Saturation -->
+        <div class="slider-group">
+          <label class="slider-label">Saturation</label>
+          <div class="slider-track">
+            <input type="range" id="saturation-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="saturation-value">0</span>
+        </div>
+        
+        <!-- Exposure -->
+        <div class="slider-group">
+          <label class="slider-label">Exposure</label>
+          <div class="slider-track">
+            <input type="range" id="exposure-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="exposure-value">0</span>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="action-btn gallery-btn" id="gallery-btn" title="Gallery">
+          <span class="btn-icon">📷</span>
+        </button>
+        <button class="action-btn capture-btn" id="capture-btn" title="Capture">
+          <span class="btn-icon">◉</span>
+        </button>
+        <button class="action-btn camera-switch-btn" id="camera-switch-btn" title="Switch Camera">
+          <span class="btn-icon">🔄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Gallery Modal -->
+  <div class="gallery-modal" id="gallery-modal">
+    <div class="gallery-content">
+      <button class="gallery-close" id="gallery-close">✕</button>
+      <h2>Gallery</h2>
+      <div class="gallery-grid" id="gallery-grid">
+        <!-- Photos will be inserted here -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Capture Toast Notification -->
+  <div class="toast" id="capture-toast">
+    <span>Photo captured ✓</span>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/constraints.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/lut-engine.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/capture.js"></script>
+  <script src="js/gallery.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
+
+// FILE: manifest.json
+{
+  "name": "ProCamera",
+  "short_name": "ProCamera",
+  "description": "Professional DSLR-style camera web app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e27",
+  "theme_color": "#0a0e27",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230a0e27' width='540' height='720'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Take Photo",
+      "short_name": "Photo",
+      "description": "Open camera and take a photo",
+      "url": "/?action=capture",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%230a0e27' width='96' height='96'/><circle cx='48' cy='48' r='30' fill='%23ff6b6b' opacity='0.8'/></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
+
+// FILE: service-worker.js
+const CACHE_NAME = 'procamera-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/css/base.css',
+  '/css/camera.css',
+  '/css/sliders.css',
+  '/css/animations.css',
+  '/js/app.js',
+  '/js/camera.js',
+  '/js/capture.js',
+  '/js/constraints.js',
+  '/js/filters.js',
+  '/js/gallery.js',
+  '/js/lut-engine.js',
+  '/js/ui.js'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) return response;
+        
+        return fetch(event.request).then(response => {
+          if (!response || response.status !== 200 || response.type === 'error') {
+            return response;
+          }
+          
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => cache.put(event.request, responseToCache));
+          
+          return response;
+        });
+      })
+      .catch(() => {
+        return caches.match('/index.html');
+      })
+  );
+});
+
+// FILE: css/base.css
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0a0e27;
+  color: #fff;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  outline: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]:active::-webkit-slider-thumb,
+input[type="range"]:active::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.6);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.3);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 107, 0.5);
+}
+
+// FILE: css/camera.css
+.camera-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  overflow: hidden;
+}
+
+video, canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#camera-feed {
+  z-index: 1;
+}
+
+#canvas-filter {
+  z-index: 2;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* Viewfinder Grid */
+.viewfinder-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%),
+    linear-gradient(0deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%);
+  background-size: 100% 100%;
+  opacity: 0.3;
+}
+
+/* Status Bar */
+.status-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  opacity: 0.5;
+  font-size: 9px;
+}
+
+.status-value {
+  font-weight: 700;
+  color: #ff6b6b;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  opacity: 0.3;
+  animation: pulse 1s infinite;
+}
+
+.status-dot.recording {
+  opacity: 1;
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Control Panel */
+.control-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(10, 14, 39, 0.98), rgba(10, 14, 39, 0.8), transparent);
+  backdrop-filter: blur(8px);
+  padding: 24px 16px 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
+}
+
+.filter-btn:active {
+  transform: scale(0.95);
+}
+
+.filter-btn.active {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  box-shadow: 0 0 12px rgba(255, 107, 107, 0.2);
+}
+
+/* Sliders Section */
+.sliders-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sliders-section::-webkit-scrollbar {
+  width: 2px;
+}
+
+.sliders-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.2);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.action-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 107, 107, 0.1);
+  border: 2px solid rgba(255, 107, 107, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:active {
+  transform: scale(0.9);
+  background: rgba(255, 107, 107, 0.2);
+  border-color: #ff6b6b;
+}
+
+.action-btn.capture-btn {
+  width: 64px;
+  height: 64px;
+  background: radial-gradient(circle, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.1));
+  border-color: #ff6b6b;
+  box-shadow: 0 0 16px rgba(255, 107, 107, 0.3);
+}
+
+.action-btn.capture-btn:active {
+  box-shadow: 0 0 24px rgba(255, 107, 107, 0.5);
+}
+
+/* Gallery Modal */
+.gallery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gallery-modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.gallery-content {
+  background: #0a0e27;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 90%;
+  max-height: 80%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+.gallery-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.gallery-close:active {
+  opacity: 1;
+}
+
+.gallery-content h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.gallery-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gallery-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-item:active {
+  transform: scale(0.95);
+  border-color: #ff6b6b;
+}
+
+.gallery-item.selected {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  background: rgba(255, 107, 107, 0.9);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+// FILE: css/sliders.css
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.slider-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 70px;
+  text-transform: uppercase;
+}
+
+.slider-track {
+  flex: 1;
+  position: relative;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+  overflow: visible;
+}
+
+.slider-fill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.6));
+  border-radius: 1px;
+  pointer-events: none;
+  width: 0;
+  transition: width 0.1s ease;
+}
+
+.slider-input {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  cursor: pointer;
+}
+
+.slider-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff6b6b;
+  min-width: 30px;
+  text-align: right;
+  letter-spacing: 0.5px;
+}
+
+// FILE: css/animations.css
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease;
+}
+
+// FILE: js/constraints.js
+/**
+ * Camera constraint definitions for different device types
+ * Ensures optimal performance and image quality across devices
+ */
+
+const CAMERA_CONSTRAINTS = {
+  // High-quality desktop constraints
+  desktop: {
+    audio: false,
+    video: {
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      facingMode: 'user',
+      frameRate: { ideal: 30 }
+    }
+  },
+  
+  // Optimized mobile constraints
+  mobile: {
+    audio: false,
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: 'user',
+      frameRate: { ideal: 30 }
+    }
+  },
+  
+  // Back camera for mobile
+  mobileBack: {
+    audio: false,
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: 'environment',
+      frameRate: { ideal: 30 }
+    }
+  }
+};
+
+/**
+ * Detect device type and return appropriate constraints
+ */
+function getConstraints(facingMode = 'user') {
+  const isMobile = /Android|iPhone|iPad|iPod|mobile/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    const constraints = { ...CAMERA_CONSTRAINTS.mobile };
+    constraints.video.facingMode = facingMode;
+    return constraints;
+  }
+  
+  const constraints = { ...CAMERA_CONSTRAINTS.desktop };
+  constraints.video.facingMode = facingMode;
+  return constraints;
+}
+
+// FILE: js/filters.js
+/**
+ * Real-time image processing filters
+ * Applied via Canvas 2D context for immediate visual feedback
+ */
+
+class FilterEngine {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', { willReadFrequently: true });
+    this.settings = {
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      exposure: 0,
+      filter: 'normal'
+    };
+  }
+  
+  /**
+   * Update filter settings from UI controls
+   */
+  updateSettings(key, value) {
+    this.settings[key] = value;
+  }
+  
+  /**
+   * Apply all active filters to canvas
+   */
+  applyFilters(sourceCanvas) {
+    if (!this.canvas.width || !this.canvas.height) return;
+    
+    // Draw source to filter canvas
+    this.ctx.drawImage(sourceCanvas, 0, 0);
+    
+    // Get image data
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+    
+    // Apply adjustments
+    this._applyAdjustments(data);
+    
+    // Apply style filter
+    this._applyStyleFilter(data);
+    
+    // Put processed data back
+    this.ctx.putImageData(imageData, 0, 0);
+  }
+  
+  /**
+   * Core brightness, contrast, saturation, exposure adjustments
+   */
+  _applyAdjustments(data) {
+    const brightness = this.settings.brightness / 100;
+    const contrast = (this.settings.contrast / 100) + 1;
+    const saturation = (this.settings.saturation / 100) + 1;
+    const exposure = (this.settings.exposure / 100) + 1;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+      
+      // Apply exposure (brightens shadows)
+      r = Math.min(255, r * exposure);
+      g = Math.min(255, g * exposure);
+      b = Math.min(255, b * exposure);
+      
+      // Apply contrast
+      r = ((r - 128) * contrast) + 128;
+      g = ((g - 128) * contrast) + 128;
+      b = ((b - 128) * contrast) + 128;
+      
+      // Apply brightness
+      r = Math.min(255, Math.max(0, r + brightness * 255));
+      g = Math.min(255, Math.max(0, g + brightness * 255));
+      b = Math.min(255, Math.max(0, b + brightness * 255));
+      
+      // Apply saturation
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
+      g = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
+      b = Math.min(255, Math.max(0, gray + (b - gray) * saturation));
+      // FILE: index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0e27">
+  <meta name="description" content="ProCamera - Professional DSLR-style camera web app">
+  <title>ProCamera</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230a0e27' width='180' height='180'/><circle cx='90' cy='90' r='55' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/camera.css">
+  <link rel="stylesheet" href="css/sliders.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <div class="camera-viewport">
+    <video id="camera-feed" playsinline autoplay muted></video>
+    <canvas id="canvas-filter"></canvas>
+    <div class="viewfinder-grid"></div>
+    
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">ISO</span>
+        <span class="status-value" id="iso-display">100</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">FOCUS</span>
+        <span class="status-value" id="focus-display">AF</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">REC</span>
+        <span class="status-dot" id="rec-indicator"></span>
+      </div>
+    </div>
+    
+    <div class="control-panel">
+      <div class="filter-tabs">
+        <button class="filter-btn active" data-filter="normal">NORMAL</button>
+        <button class="filter-btn" data-filter="cinematic">CINEMA</button>
+        <button class="filter-btn" data-filter="film">FILM</button>
+        <button class="filter-btn" data-filter="sharp">SHARP</button>
+      </div>
+      
+      <div class="sliders-section">
+        <div class="slider-group">
+          <label class="slider-label">Brightness</label>
+          <div class="slider-track">
+            <input type="range" id="brightness-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="brightness-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Contrast</label>
+          <div class="slider-track">
+            <input type="range" id="contrast-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="contrast-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Saturation</label>
+          <div class="slider-track">
+            <input type="range" id="saturation-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="saturation-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Exposure</label>
+          <div class="slider-track">
+            <input type="range" id="exposure-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="exposure-value">0</span>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="action-btn gallery-btn" id="gallery-btn" title="Gallery">
+          <span class="btn-icon">📷</span>
+        </button>
+        <button class="action-btn capture-btn" id="capture-btn" title="Capture">
+          <span class="btn-icon">◉</span>
+        </button>
+        <button class="action-btn camera-switch-btn" id="camera-switch-btn" title="Switch Camera">
+          <span class="btn-icon">🔄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="gallery-modal" id="gallery-modal">
+    <div class="gallery-content">
+      <button class="gallery-close" id="gallery-close">✕</button>
+      <h2>Gallery</h2>
+      <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+  </div>
+  
+  <div class="toast" id="capture-toast">
+    <span>Photo captured ✓</span>
+  </div>
+  
+  <script src="js/constraints.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/lut-engine.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/capture.js"></script>
+  <script src="js/gallery.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
+
+// FILE: manifest.json
+{
+  "name": "ProCamera",
+  "short_name": "ProCamera",
+  "description": "Professional DSLR-style camera web app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e27",
+  "theme_color": "#0a0e27",
+  "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>","sizes": "192x192","type": "image/svg+xml","purpose": "any"}],
+  "screenshots": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230a0e27' width='540' height='720'/></svg>","sizes": "540x720","type": "image/svg+xml","form_factor": "narrow"}],
+  "shortcuts": [{"name": "Take Photo","short_name": "Photo","description": "Open camera and take a photo","url": "/?action=capture","icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%230a0e27' width='96' height='96'/><circle cx='48' cy='48' r='30' fill='%23ff6b6b' opacity='0.8'/></svg>","sizes": "96x96","type": "image/svg+xml"}]}]
+}
+
+// FILE: service-worker.js
+const CACHE_NAME = 'procamera-v1';
+const STATIC_ASSETS = ['/','index.html','/manifest.json','/css/base.css','/css/camera.css','/css/sliders.css','/css/animations.css','/js/app.js','/js/camera.js','/js/capture.js','/js/constraints.js','/js/filters.js','/js/gallery.js','/js/lut-engine.js','/js/ui.js'];
+self.addEventListener('install', event => {event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));});
+self.addEventListener('activate', event => {event.waitUntil(caches.keys().then(cacheNames => {return Promise.all(cacheNames.map(cacheName => {if (cacheName !== CACHE_NAME) return caches.delete(cacheName);}));}).then(() => self.clients.claim()));});
+self.addEventListener('fetch', event => {if (event.request.method !== 'GET') return;event.respondWith(caches.match(event.request).then(response => {if (response) return response;return fetch(event.request).then(response => {if (!response || response.status !== 200 || response.type === 'error') return response;const responseToCache = response.clone();caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));return response;}).catch(() => caches.match('/index.html'));});});
+
+// FILE: css/base.css
+* {margin: 0;padding: 0;box-sizing: border-box;}html, body {width: 100%;height: 100%;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;background: #0a0e27;color: #fff;overflow: hidden;-webkit-user-select: none;user-select: none;-webkit-touch-callout: none;}body {display: flex;align-items: center;justify-content: center;}h1, h2, h3, h4, h5, h6 {font-weight: 600;letter-spacing: -0.5px;}button {font-family: inherit;cursor: pointer;border: none;background: none;color: inherit;}input[type="range"] {-webkit-appearance: none;appearance: none;width: 100%;height: 2px;border-radius: 1px;outline: none;background: transparent;}input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none;appearance: none;width: 16px;height: 16px;border-radius: 50%;background: #ff6b6b;cursor: pointer;box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);transition: all 0.2s ease;}input[type="range"]::-moz-range-thumb {width: 16px;height: 16px;border-radius: 50%;background: #ff6b6b;border: none;cursor: pointer;box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);transition: all 0.2s ease;}input[type="range"]:active::-webkit-slider-thumb, input[type="range"]:active::-moz-range-thumb {width: 20px;height: 20px;box-shadow: 0 4px 12px rgba(255, 107, 107, 0.6);}::-webkit-scrollbar {width: 4px;height: 4px;}::-webkit-scrollbar-track {background: transparent;}::-webkit-scrollbar-thumb {background: rgba(255, 107, 107, 0.3);border-radius: 2px;}::-webkit-scrollbar-thumb:hover {background: rgba(255, 107, 107, 0.5);}
+
+// FILE: css/camera.css
+.camera-viewport {position: relative;width: 100%;height: 100%;display: flex;flex-direction: column;background: #000;overflow: hidden;}video, canvas {position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;display: block;}#camera-feed {z-index: 1;}#canvas-filter {z-index: 2;opacity: 1;transition: opacity 0.3s ease;}.viewfinder-grid {position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 3;pointer-events: none;background-image: linear-gradient(90deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%), linear-gradient(0deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%);background-size: 100% 100%;opacity: 0.3;}.status-bar {position: absolute;top: 16px;left: 16px;right: 16px;z-index: 4;display: flex;justify-content: space-between;align-items: center;font-size: 11px;font-weight: 600;letter-spacing: 1px;text-transform: uppercase;}.status-item {display: flex;flex-direction: column;align-items: center;gap: 4px;}.status-label {opacity: 0.5;font-size: 9px;}.status-value {font-weight: 700;color: #ff6b6b;}.status-dot {width: 8px;height: 8px;border-radius: 50%;background: #ff6b6b;opacity: 0.3;animation: pulse 1s infinite;}.status-dot.recording {opacity: 1;animation: pulse 0.5s infinite;}@keyframes pulse {0%, 100% {opacity: 0.3;}50% {opacity: 1;}}.control-panel {position: absolute;bottom: 0;left: 0;right: 0;background: linear-gradient(to top, rgba(10, 14, 39, 0.98), rgba(10, 14, 39, 0.8), transparent);backdrop-filter: blur(8px);padding: 24px 16px 20px;z-index: 10;display: flex;flex-direction: column;gap: 16px;}.filter-tabs {display: flex;gap: 8px;justify-content: center;}.filter-btn {padding: 6px 14px;background: rgba(255, 255, 255, 0.05);border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 4px;font-size: 11px;font-weight: 600;letter-spacing: 0.5px;color: rgba(255, 255, 255, 0.6);transition: all 0.2s ease;}.filter-btn:active {transform: scale(0.95);}.filter-btn.active {background: rgba(255, 107, 107, 0.2);border-color: #ff6b6b;color: #ff6b6b;box-shadow: 0 0 12px rgba(255, 107, 107, 0.2);}.sliders-section {display: flex;flex-direction: column;gap: 12px;max-height: 180px;overflow-y: auto;padding-right: 4px;}.sliders-section::-webkit-scrollbar {width: 2px;}.sliders-section::-webkit-scrollbar-thumb {background: rgba(255, 107, 107, 0.2);}.action-buttons {display: flex;justify-content: space-around;align-items: center;gap: 12px;padding-top: 8px;}.action-btn {width: 56px;height: 56px;border-radius: 50%;background: rgba(255, 107, 107, 0.1);border: 2px solid rgba(255, 107, 107, 0.3);display: flex;align-items: center;justify-content: center;font-size: 24px;transition: all 0.2s ease;position: relative;overflow: hidden;}.action-btn:active {transform: scale(0.9);background: rgba(255, 107, 107, 0.2);border-color: #ff6b6b;}.action-btn.capture-btn {width: 64px;height: 64px;background: radial-gradient(circle, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.1));border-color: #ff6b6b;box-shadow: 0 0 16px rgba(255, 107, 107, 0.3);}.action-btn.capture-btn:active {box-shadow: 0 0 24px rgba(255, 107, 107, 0.5);}.gallery-modal {position: fixed;top: 0;left: 0;right: 0;bottom: 0;background: rgba(0, 0, 0, 0.8);backdrop-filter: blur(4px);display: none;align-items: center;justify-content: center;z-index: 1000;opacity: 0;transition: opacity 0.3s ease;}.gallery-modal.active {display: flex;opacity: 1;}.gallery-content {background: #0a0e27;border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 12px;padding: 20px;max-width: 90%;max-height: 80%;width: 100%;display: flex;flex-direction: column;position: relative;animation: slideUp 0.3s ease;}.gallery-close {position: absolute;top: 12px;right: 12px;width: 32px;height: 32px;font-size: 20px;opacity: 0.6;transition: opacity 0.2s ease;z-index: 2;}.gallery-close:active {opacity: 1;}.gallery-content h2 {margin-bottom: 16px;font-size: 18px;}.gallery-grid {display: grid;grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));gap: 8px;overflow-y: auto;flex: 1;}.gallery-grid::-webkit-scrollbar {width: 4px;}.gallery-item {position: relative;aspect-ratio: 1;border-radius: 8px;overflow: hidden;cursor: pointer;border: 1px solid rgba(255, 255, 255, 0.1);transition: all 0.2s ease;}.gallery-item img {width: 100%;height: 100%;object-fit: cover;}.gallery-item:active {transform: scale(0.95);border-color: #ff6b6b;}.gallery-item.selected {border-color: #ff6b6b;box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);}.toast {position: fixed;bottom: 20px;left: 50%;transform: translateX(-50%) translateY(120px);background: rgba(255, 107, 107, 0.9);color: #fff;padding: 12px 20px;border-radius: 6px;font-size: 13px;font-weight: 600;z-index: 999;pointer-events: none;opacity: 0;transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);}.toast.show {transform: translateX(-50%) translateY(0);opacity: 1;}
+
+// FILE: css/sliders.css
+.slider-group {display: flex;align-items: center;gap: 8px;padding: 0 4px;}.slider-label {font-size: 11px;font-weight: 600;letter-spacing: 0.5px;color: rgba(255, 255, 255, 0.7);min-width: 70px;text-transform: uppercase;}.slider-track {flex: 1;position: relative;height: 2px;background: rgba(255, 255, 255, 0.1);border-radius: 1px;overflow: visible;}.slider-fill {position: absolute;top: 0;left: 50%;height: 100%;background: linear-gradient(90deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.6));border-radius: 1px;pointer-events: none;width: 0;transition: width 0.1s ease;}.slider-input {position: relative;z-index: 2;width: 100%;cursor: pointer;}.slider-value {font-size: 11px;font-weight: 700;color: #ff6b6b;min-width: 30px;text-align: right;letter-spacing: 0.5px;}
+
+// FILE: css/animations.css
+@keyframes slideUp {from {opacity: 0;transform: translateY(20px);}to {opacity: 1;transform: translateY(0);}}@keyframes fadeIn {from {opacity: 0;}to {opacity: 1;}}@keyframes scaleIn {from {opacity: 0;transform: scale(0.95);}to {opacity: 1;transform: scale(1);}}.fade-in {animation: fadeIn 0.3s ease;}.scale-in {animation: scaleIn 0.3s ease;}
+
+// FILE: js/constraints.js
+const CAMERA_CONSTRAINTS = {
+  desktop: {audio: false, video: {width: {ideal: 1920}, height: {ideal: 1080}, facingMode: 'user', frameRate: {ideal: 30}}},
+  mobile: {audio: false, video: {width: {ideal: 1280}, height: {ideal: 720}, facingMode: 'user', frameRate: {ideal: 30}}},
+  mobileBack: {audio: false, video: {width: {ideal: 1280}, height: {ideal: 720}, facingMode: 'environment', frameRate: {ideal: 30}}}
+};
+
+function getConstraints(facingMode = 'user') {
+  const isMobile = /Android|iPhone|iPad|iPod|mobile/i.test(navigator.userAgent);
+  const constraints = isMobile ? {...CAMERA_CONSTRAINTS.mobile} : {...CAMERA_CONSTRAINTS.desktop};
+  constraints.video.facingMode = facingMode;
+  return constraints;
+}
+
+// FILE: js/filters.js
+class FilterEngine {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', {willReadFrequently: true});
+    this.settings = {brightness: 0, contrast: 0, saturation: 0, exposure: 0, filter: 'normal'};
+  }
+  
+  updateSettings(key, value) {this.settings[key] = value;}
+  
+  applyFilters(sourceCanvas) {
+    if (!this.canvas.width || !this.canvas.height) return;
+    this.ctx.drawImage(sourceCanvas, 0, 0);
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+    this._applyAdjustments(data);
+    this._applyStyleFilter(data);
+    this.ctx.putImageData(imageData, 0, 0);
+  }
+  
+  _applyAdjustments(data) {
+    const brightness = this.settings.brightness / 100;
+    const contrast = (this.settings.contrast / 100) + 1;
+    const saturation = (this.settings.saturation / 100) + 1;
+    const exposure = (this.settings.exposure / 100) + 1;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i + 1], b = data[i + 2];
+      
+      r = Math.min(255, r * exposure);
+      g = Math.min(255, g * exposure);
+      b = Math.min(255, b * exposure);
+      
+      r = ((r - 128) * contrast) + 128;
+      g = ((g - 128) * contrast) + 128;
+      b = ((b - 128) * contrast) + 128;
+      
+      r = Math.min(255, Math.max(0, r + brightness * 255));
+      g = Math.min(255, Math.max(0, g + brightness * 255));
+      b = Math.min(255, Math.max(0, b + brightness * 255));
+      
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
+      g = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
+      b = Math.min(255, Math.max(0, gray + (b - gray) * saturation));
+      
+      data[i] = r; data[i + 1] = g; data[i + 2] = b;
+    }
+  }
+  
+  _applyStyleFilter(data) {
+    const filter = this.settings.filter;
+    if (filter === 'normal') return;
+    
+    if (filter === 'cinematic') this._applyCinematicGrade(data);
+    else if (filter === 'film') this._applyFilmGrade(data);
+    else if (filter === 'sharp') this._applySharpen(data);
+  }
+  
+  _applyCinematicGrade(data) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, data[i] * 1.1);
+      data[i + 1] = Math.max(0, data[i + 1] * 0.95);
+      data[i + 2] = Math.max(0, data[i + 2] * 0.9);
+    }
+  }
+  
+  _applyFilmGrade(data) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, data[i] * 1.05);
+      data[i + 1] = Math.min(255, data[i + 1] * 1.0);
+      data[i + 2] = Math.min(255, data[i + 2] * 0.95);
+      const noise = (Math.random() - 0.5) * 8;
+      data[i] = Math.max(0, Math.min(255, data[i] + noise));
+    }
+  }
+  
+  _applySharpen(data) {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const kernel = [-1, -1, -1, -1, 9, -1, -1, -1, -1];
+    const tempData = new Uint8ClampedArray(data);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let r = 0, g = 0, b = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const idx = ((y + ky) * width + (x + kx)) * 4;
+            const k = kernel[(ky + 1) * 3 + (kx + 1)];
+            r += tempData[idx] * k;
+            g += tempData[idx + 1] * k;
+            b += tempData[idx + 2] * k;
+          }
+        }
+        const idx = (y * width + x) * 4;
+        data[idx] = Math.max(0, Math.min(255, r / 2));
+        data[idx + 1] = Math.max(0, Math.min(255, g / 2));
+        data[idx + 2] = Math.max(0, Math.min(255, b / 2));
+      }
+    }
+  }
+}
+
+// FILE: js/lut-engine.js
+class LUTEngine {
+  constructor() {
+    this.luts = {normal: null, cinematic: null, film: null, sharp: null};
+  }
+  
+  generateLUT(filter) {
+    if (this.luts[filter]) return this.luts[filter];
+    
+    const lut = [];
+    for (let i = 0; i < 256; i++) {
+      let val = i;
+      if (filter === 'cinematic') val = Math.pow(i / 255, 1.1) * 255;
+      else if (filter === 'film') val = i * 1.05;
+      else if (filter === 'sharp') val = Math.min(255, i * 1.2);
+      lut[i] = Math.max(0, Math.min(255, val));
+    }
+    
+    this.luts[filter] = lut;
+    return lut;
+  }
+}
+
+// FILE: js/camera.js
+class CameraManager {
+  constructor(videoElement, canvasElement) {
+    this.video = videoElement;
+    this.canvas = canvasElement;
+    this.stream = null;
+    this.facingMode = 'user';
+    this.isInitialized = false;
+    this.frameId = null;
+    this.filterEngine = new FilterEngine(this.canvas);
+    this.lutEngine = new LUTEngine();
+  }
+  
+  async initialize() {
+    try {
+      const constraints = getConstraints(this.facingMode);
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.video.srcObject = this.stream;
+      
+      return new Promise((resolve) => {
+        this.video.onloadedmetadata = () => {
+          this.canvas.width = this.video.videoWidth;
+          this.canvas.height = this.video.videoHeight;
+          this.isInitialized = true;
+          this.startProcessing();
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      alert('Camera access denied or not available');
+    }
+  }
+  
+  async switchCamera() {
+    this.stop();
+    this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+    await this.initialize();
+  }
+  
+  startProcessing() {
+    const process = () => {
+      if (!this.isInitialized || !this.video.readyState) {
+        this.frameId = requestAnimationFrame(process);
+        return;
+      }
+      
+      this.filterEngine.applyFilters(this.video);
+      this.frameId = requestAnimationFrame(process);
+    };
+    
+    this.frameId = requestAnimationFrame(process);
+  }
+  
+  stop() {
+    if (this.frameId) cancelAnimationFrame(this.frameId);
+      // FILE: index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0e27">
+  <meta name="description" content="ProCamera - Professional DSLR-style camera web app">
+  <title>ProCamera</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230a0e27' width='180' height='180'/><circle cx='90' cy='90' r='55' fill='%23ff6b6b' opacity='0.8'/></svg>">
+  
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/camera.css">
+  <link rel="stylesheet" href="css/sliders.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <div class="camera-viewport">
+    <video id="camera-feed" playsinline autoplay muted></video>
+    <canvas id="canvas-filter"></canvas>
+    <div class="viewfinder-grid"></div>
+    
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">ISO</span>
+        <span class="status-value" id="iso-display">100</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">FOCUS</span>
+        <span class="status-value" id="focus-display">AF</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">REC</span>
+        <span class="status-dot" id="rec-indicator"></span>
+      </div>
+    </div>
+    
+    <div class="control-panel">
+      <div class="filter-tabs">
+        <button class="filter-btn active" data-filter="normal">NORMAL</button>
+        <button class="filter-btn" data-filter="cinematic">CINEMA</button>
+        <button class="filter-btn" data-filter="film">FILM</button>
+        <button class="filter-btn" data-filter="sharp">SHARP</button>
+      </div>
+      
+      <div class="sliders-section">
+        <div class="slider-group">
+          <label class="slider-label">Brightness</label>
+          <div class="slider-track">
+            <input type="range" id="brightness-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="brightness-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Contrast</label>
+          <div class="slider-track">
+            <input type="range" id="contrast-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="contrast-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Saturation</label>
+          <div class="slider-track">
+            <input type="range" id="saturation-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="saturation-value">0</span>
+        </div>
+        
+        <div class="slider-group">
+          <label class="slider-label">Exposure</label>
+          <div class="slider-track">
+            <input type="range" id="exposure-slider" class="slider-input" min="-100" max="100" value="0">
+            <div class="slider-fill"></div>
+          </div>
+          <span class="slider-value" id="exposure-value">0</span>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="action-btn gallery-btn" id="gallery-btn" title="Gallery">
+          <span class="btn-icon">📷</span>
+        </button>
+        <button class="action-btn capture-btn" id="capture-btn" title="Capture">
+          <span class="btn-icon">◉</span>
+        </button>
+        <button class="action-btn camera-switch-btn" id="camera-switch-btn" title="Switch Camera">
+          <span class="btn-icon">🔄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="gallery-modal" id="gallery-modal">
+    <div class="gallery-content">
+      <button class="gallery-close" id="gallery-close">✕</button>
+      <h2>Gallery</h2>
+      <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+  </div>
+  
+  <div class="toast" id="capture-toast">
+    <span>Photo captured ✓</span>
+  </div>
+  
+  <script src="js/constraints.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/lut-engine.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/capture.js"></script>
+  <script src="js/gallery.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
+
+// FILE: manifest.json
+{
+  "name": "ProCamera",
+  "short_name": "ProCamera",
+  "description": "Professional DSLR-style camera web app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e27",
+  "theme_color": "#0a0e27",
+  "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0e27' width='192' height='192'/><circle cx='96' cy='96' r='60' fill='%23ff6b6b' opacity='0.8'/></svg>","sizes": "192x192","type": "image/svg+xml","purpose": "any"}],
+  "screenshots": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230a0e27' width='540' height='720'/></svg>","sizes": "540x720","type": "image/svg+xml","form_factor": "narrow"}],
+  "shortcuts": [{"name": "Take Photo","short_name": "Photo","description": "Open camera and take a photo","url": "/?action=capture","icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%230a0e27' width='96' height='96'/><circle cx='48' cy='48' r='30' fill='%23ff6b6b' opacity='0.8'/></svg>","sizes": "96x96","type": "image/svg+xml"}]}]
+}
+
+// FILE: service-worker.js
+const CACHE_NAME = 'procamera-v1';
+const STATIC_ASSETS = ['/','index.html','/manifest.json','/css/base.css','/css/camera.css','/css/sliders.css','/css/animations.css','/js/app.js','/js/camera.js','/js/capture.js','/js/constraints.js','/js/filters.js','/js/gallery.js','/js/lut-engine.js','/js/ui.js'];
+self.addEventListener('install', event => {event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));});
+self.addEventListener('activate', event => {event.waitUntil(caches.keys().then(cacheNames => {return Promise.all(cacheNames.map(cacheName => {if (cacheName !== CACHE_NAME) return caches.delete(cacheName);}));}).then(() => self.clients.claim()));});
+self.addEventListener('fetch', event => {if (event.request.method !== 'GET') return;event.respondWith(caches.match(event.request).then(response => {if (response) return response;return fetch(event.request).then(response => {if (!response || response.status !== 200 || response.type === 'error') return response;const responseToCache = response.clone();caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));return response;}).catch(() => caches.match('/index.html'));});});
+
+// FILE: css/base.css
+* {margin: 0;padding: 0;box-sizing: border-box;}html, body {width: 100%;height: 100%;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;background: #0a0e27;color: #fff;overflow: hidden;-webkit-user-select: none;user-select: none;-webkit-touch-callout: none;}body {display: flex;align-items: center;justify-content: center;}h1, h2, h3, h4, h5, h6 {font-weight: 600;letter-spacing: -0.5px;}button {font-family: inherit;cursor: pointer;border: none;background: none;color: inherit;}input[type="range"] {-webkit-appearance: none;appearance: none;width: 100%;height: 2px;border-radius: 1px;outline: none;background: transparent;}input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none;appearance: none;width: 16px;height: 16px;border-radius: 50%;background: #ff6b6b;cursor: pointer;box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);transition: all 0.2s ease;}input[type="range"]::-moz-range-thumb {width: 16px;height: 16px;border-radius: 50%;background: #ff6b6b;border: none;cursor: pointer;box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);transition: all 0.2s ease;}input[type="range"]:active::-webkit-slider-thumb, input[type="range"]:active::-moz-range-thumb {width: 20px;height: 20px;box-shadow: 0 4px 12px rgba(255, 107, 107, 0.6);}::-webkit-scrollbar {width: 4px;height: 4px;}::-webkit-scrollbar-track {background: transparent;}::-webkit-scrollbar-thumb {background: rgba(255, 107, 107, 0.3);border-radius: 2px;}::-webkit-scrollbar-thumb:hover {background: rgba(255, 107, 107, 0.5);}
+
+// FILE: css/camera.css
+.camera-viewport {position: relative;width: 100%;height: 100%;display: flex;flex-direction: column;background: #000;overflow: hidden;}video, canvas {position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;display: block;}#camera-feed {z-index: 1;}#canvas-filter {z-index: 2;opacity: 1;transition: opacity 0.3s ease;}.viewfinder-grid {position: absolute;top: 0;left: 0;width: 100%;height: 100%;z-index: 3;pointer-events: none;background-image: linear-gradient(90deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%), linear-gradient(0deg, transparent 33.333%, rgba(255,255,255,0.05) 33.333%, rgba(255,255,255,0.05) 66.666%, transparent 66.666%);background-size: 100% 100%;opacity: 0.3;}.status-bar {position: absolute;top: 16px;left: 16px;right: 16px;z-index: 4;display: flex;justify-content: space-between;align-items: center;font-size: 11px;font-weight: 600;letter-spacing: 1px;text-transform: uppercase;}.status-item {display: flex;flex-direction: column;align-items: center;gap: 4px;}.status-label {opacity: 0.5;font-size: 9px;}.status-value {font-weight: 700;color: #ff6b6b;}.status-dot {width: 8px;height: 8px;border-radius: 50%;background: #ff6b6b;opacity: 0.3;animation: pulse 1s infinite;}.status-dot.recording {opacity: 1;animation: pulse 0.5s infinite;}@keyframes pulse {0%, 100% {opacity: 0.3;}50% {opacity: 1;}}.control-panel {position: absolute;bottom: 0;left: 0;right: 0;background: linear-gradient(to top, rgba(10, 14, 39, 0.98), rgba(10, 14, 39, 0.8), transparent);backdrop-filter: blur(8px);padding: 24px 16px 20px;z-index: 10;display: flex;flex-direction: column;gap: 16px;}.filter-tabs {display: flex;gap: 8px;justify-content: center;}.filter-btn {padding: 6px 14px;background: rgba(255, 255, 255, 0.05);border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 4px;font-size: 11px;font-weight: 600;letter-spacing: 0.5px;color: rgba(255, 255, 255, 0.6);transition: all 0.2s ease;}.filter-btn:active {transform: scale(0.95);}.filter-btn.active {background: rgba(255, 107, 107, 0.2);border-color: #ff6b6b;color: #ff6b6b;box-shadow: 0 0 12px rgba(255, 107, 107, 0.2);}.sliders-section {display: flex;flex-direction: column;gap: 12px;max-height: 180px;overflow-y: auto;padding-right: 4px;}.sliders-section::-webkit-scrollbar {width: 2px;}.sliders-section::-webkit-scrollbar-thumb {background: rgba(255, 107, 107, 0.2);}.action-buttons {display: flex;justify-content: space-around;align-items: center;gap: 12px;padding-top: 8px;}.action-btn {width: 56px;height: 56px;border-radius: 50%;background: rgba(255, 107, 107, 0.1);border: 2px solid rgba(255, 107, 107, 0.3);display: flex;align-items: center;justify-content: center;font-size: 24px;transition: all 0.2s ease;position: relative;overflow: hidden;}.action-btn:active {transform: scale(0.9);background: rgba(255, 107, 107, 0.2);border-color: #ff6b6b;}.action-btn.capture-btn {width: 64px;height: 64px;background: radial-gradient(circle, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.1));border-color: #ff6b6b;box-shadow: 0 0 16px rgba(255, 107, 107, 0.3);}.action-btn.capture-btn:active {box-shadow: 0 0 24px rgba(255, 107, 107, 0.5);}.gallery-modal {position: fixed;top: 0;left: 0;right: 0;bottom: 0;background: rgba(0, 0, 0, 0.8);backdrop-filter: blur(4px);display: none;align-items: center;justify-content: center;z-index: 1000;opacity: 0;transition: opacity 0.3s ease;}.gallery-modal.active {display: flex;opacity: 1;}.gallery-content {background: #0a0e27;border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 12px;padding: 20px;max-width: 90%;max-height: 80%;width: 100%;display: flex;flex-direction: column;position: relative;animation: slideUp 0.3s ease;}.gallery-close {position: absolute;top: 12px;right: 12px;width: 32px;height: 32px;font-size: 20px;opacity: 0.6;transition: opacity 0.2s ease;z-index: 2;}.gallery-close:active {opacity: 1;}.gallery-content h2 {margin-bottom: 16px;font-size: 18px;}.gallery-grid {display: grid;grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));gap: 8px;overflow-y: auto;flex: 1;}.gallery-grid::-webkit-scrollbar {width: 4px;}.gallery-item {position: relative;aspect-ratio: 1;border-radius: 8px;overflow: hidden;cursor: pointer;border: 1px solid rgba(255, 255, 255, 0.1);transition: all 0.2s ease;}.gallery-item img {width: 100%;height: 100%;object-fit: cover;}.gallery-item:active {transform: scale(0.95);border-color: #ff6b6b;}.gallery-item.selected {border-color: #ff6b6b;box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);}.toast {position: fixed;bottom: 20px;left: 50%;transform: translateX(-50%) translateY(120px);background: rgba(255, 107, 107, 0.9);color: #fff;padding: 12px 20px;border-radius: 6px;font-size: 13px;font-weight: 600;z-index: 999;pointer-events: none;opacity: 0;transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);}.toast.show {transform: translateX(-50%) translateY(0);opacity: 1;}
+
+// FILE: css/sliders.css
+.slider-group {display: flex;align-items: center;gap: 8px;padding: 0 4px;}.slider-label {font-size: 11px;font-weight: 600;letter-spacing: 0.5px;color: rgba(255, 255, 255, 0.7);min-width: 70px;text-transform: uppercase;}.slider-track {flex: 1;position: relative;height: 2px;background: rgba(255, 255, 255, 0.1);border-radius: 1px;overflow: visible;}.slider-fill {position: absolute;top: 0;left: 50%;height: 100%;background: linear-gradient(90deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.6));border-radius: 1px;pointer-events: none;width: 0;transition: width 0.1s ease;}.slider-input {position: relative;z-index: 2;width: 100%;cursor: pointer;}.slider-value {font-size: 11px;font-weight: 700;color: #ff6b6b;min-width: 30px;text-align: right;letter-spacing: 0.5px;}
+
+// FILE: css/animations.css
+@keyframes slideUp {from {opacity: 0;transform: translateY(20px);}to {opacity: 1;transform: translateY(0);}}@keyframes fadeIn {from {opacity: 0;}to {opacity: 1;}}@keyframes scaleIn {from {opacity: 0;transform: scale(0.95);}to {opacity: 1;transform: scale(1);}}.fade-in {animation: fadeIn 0.3s ease;}.scale-in {animation: scaleIn 0.3s ease;}
+
+// FILE: js/constraints.js
+const CAMERA_CONSTRAINTS = {
+  desktop: {audio: false, video: {width: {ideal: 1920}, height: {ideal: 1080}, facingMode: 'user', frameRate: {ideal: 30}}},
+  mobile: {audio: false, video: {width: {ideal: 1280}, height: {ideal: 720}, facingMode: 'user', frameRate: {ideal: 30}}},
+  mobileBack: {audio: false, video: {width: {ideal: 1280}, height: {ideal: 720}, facingMode: 'environment', frameRate: {ideal: 30}}}
+};
+
+function getConstraints(facingMode = 'user') {
+  const isMobile = /Android|iPhone|iPad|iPod|mobile/i.test(navigator.userAgent);
+  const constraints = isMobile ? {...CAMERA_CONSTRAINTS.mobile} : {...CAMERA_CONSTRAINTS.desktop};
+  constraints.video.facingMode = facingMode;
+  return constraints;
+}
+
+// FILE: js/filters.js
+class FilterEngine {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', {willReadFrequently: true});
+    this.settings = {brightness: 0, contrast: 0, saturation: 0, exposure: 0, filter: 'normal'};
+  }
+  
+  updateSettings(key, value) {this.settings[key] = value;}
+  
+  applyFilters(sourceCanvas) {
+    if (!this.canvas.width || !this.canvas.height) return;
+    this.ctx.drawImage(sourceCanvas, 0, 0);
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+    this._applyAdjustments(data);
+    this._applyStyleFilter(data);
+    this.ctx.putImageData(imageData, 0, 0);
+  }
+  
+  _applyAdjustments(data) {
+    const brightness = this.settings.brightness / 100;
+    const contrast = (this.settings.contrast / 100) + 1;
+    const saturation = (this.settings.saturation / 100) + 1;
+    const exposure = (this.settings.exposure / 100) + 1;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i + 1], b = data[i + 2];
+      
+      r = Math.min(255, r * exposure);
+      g = Math.min(255, g * exposure);
+      b = Math.min(255, b * exposure);
+      
+      r = ((r - 128) * contrast) + 128;
+      g = ((g - 128) * contrast) + 128;
+      b = ((b - 128) * contrast) + 128;
+      
+      r = Math.min(255, Math.max(0, r + brightness * 255));
+      g = Math.min(255, Math.max(0, g + brightness * 255));
+      b = Math.min(255, Math.max(0, b + brightness * 255));
+      
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
+      g = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
+      b = Math.min(255, Math.max(0, gray + (b - gray) * saturation));
+      
+      data[i] = r; data[i + 1] = g; data[i + 2] = b;
+    }
+  }
+  
+  _applyStyleFilter(data) {
+    const filter = this.settings.filter;
+    if (filter === 'normal') return;
+    
+    if (filter === 'cinematic') this._applyCinematicGrade(data);
+    else if (filter === 'film') this._applyFilmGrade(data);
+    else if (filter === 'sharp') this._applySharpen(data);
+  }
+  
+  _applyCinematicGrade(data) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, data[i] * 1.1);
+      data[i + 1] = Math.max(0, data[i + 1] * 0.95);
+      data[i + 2] = Math.max(0, data[i + 2] * 0.9);
+    }
+  }
+  
+  _applyFilmGrade(data) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, data[i] * 1.05);
+      data[i + 1] = Math.min(255, data[i + 1] * 1.0);
+      data[i + 2] = Math.min(255, data[i + 2] * 0.95);
+      const noise = (Math.random() - 0.5) * 8;
+      data[i] = Math.max(0, Math.min(255, data[i] + noise));
+    }
+  }
+  
+  _applySharpen(data) {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const kernel = [-1, -1, -1, -1, 9, -1, -1, -1, -1];
+    const tempData = new Uint8ClampedArray(data);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let r = 0, g = 0, b = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const idx = ((y + ky) * width + (x + kx)) * 4;
+            const k = kernel[(ky + 1) * 3 + (kx + 1)];
+            r += tempData[idx] * k;
+            g += tempData[idx + 1] * k;
+            b += tempData[idx + 2] * k;
+          }
+        }
+        const idx = (y * width + x) * 4;
+        data[idx] = Math.max(0, Math.min(255, r / 2));
+        data[idx + 1] = Math.max(0, Math.min(255, g / 2));
+        data[idx + 2] = Math.max(0, Math.min(255, b / 2));
+      }
+    }
+  }
+}
+
+// FILE: js/lut-engine.js
+class LUTEngine {
+  constructor() {
+    this.luts = {normal: null, cinematic: null, film: null, sharp: null};
+  }
+  
+  generateLUT(filter) {
+    if (this.luts[filter]) return this.luts[filter];
+    
+    const lut = [];
+    for (let i = 0; i < 256; i++) {
+      let val = i;
+      if (filter === 'cinematic') val = Math.pow(i / 255, 1.1) * 255;
+      else if (filter === 'film') val = i * 1.05;
+      else if (filter === 'sharp') val = Math.min(255, i * 1.2);
+      lut[i] = Math.max(0, Math.min(255, val));
+    }
+    
+    this.luts[filter] = lut;
+    return lut;
+  }
+}
+
+// FILE: js/camera.js
+class CameraManager {
+  constructor(videoElement, canvasElement) {
+    this.video = videoElement;
+    this.canvas = canvasElement;
+    this.stream = null;
+    this.facingMode = 'user';
+    this.isInitialized = false;
+    this.frameId = null;
+    this.filterEngine = new FilterEngine(this.canvas);
+    this.lutEngine = new LUTEngine();
+  }
+  
+  async initialize() {
+    try {
+      const constraints = getConstraints(this.facingMode);
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.video.srcObject = this.stream;
+      
+      return new Promise((resolve) => {
+        this.video.onloadedmetadata = () => {
+          this.canvas.width = this.video.videoWidth;
+          this.canvas.height = this.video.videoHeight;
+          this.isInitialized = true;
+          this.startProcessing();
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      alert('Camera access denied or not available');
+    }
+  }
+  
+  async switchCamera() {
+    this.stop();
+    this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+    await this.initialize();
+  }
+  
+  startProcessing() {
+    const process = () => {
+      if (!this.isInitialized || !this.video.readyState) {
+        this.frameId = requestAnimationFrame(process);
+        return;
+      }
+      
+      this.filterEngine.applyFilters(this.video);
+      this.frameId = requestAnimationFrame(process);
+    };
+    
+    this.frameId = requestAnimationFrame(process);
+  }
+  
+  stop() {
+    if (this.frameId) cancelAnimationFrame(this.frameId);
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    this.isInitialized = false;
+  }
+  
+  updateFilter(filterName) {
+    this.filterEngine.updateSettings('filter', filterName);
+  }
+  
+  updateSetting(key, value) {
+    this.filterEngine.updateSettings(key, value);
+  }
+  
+  captureFrame() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = this.canvas.width;
+    tempCanvas.height = this.canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(this.canvas, 0, 0);
+    return tempCanvas.toDataURL('image/jpeg', 0.9);
+  }
+}
+
+// FILE: js/capture.js
+class CaptureManager {
+  constructor(cameraManager) {
+    this.camera = cameraManager;
+    this.captureBtn = document.getElementById('capture-btn');
+    this.toast = document.getElementById('capture-toast');
+    this.setupListeners();
+  }
+  
+  setupListeners() {
+    this.captureBtn.addEventListener('click', () => this.capture());
+  }
+  
+  capture() {
+    const dataUrl = this.camera.captureFrame();
+    this.savePhoto(dataUrl);
+    this.showToast();
+  }
+  
+  savePhoto(dataUrl) {
+    try {
+      const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+      photos.unshift({id: Date.now(), data: dataUrl, timestamp: new Date().toLocaleString()});
+      localStorage.setItem('photos', JSON.stringify(photos.slice(0, 100)));
+      window.dispatchEvent(new CustomEvent('photoSaved', {detail: {dataUrl}}));
+    } catch (e) {
+      console.error('Save photo error:', e);
+    }
+  }
+  
+  showToast() {
+    this.toast.classList.add('show');
+    setTimeout(() => this.toast.classList.remove('show'), 2000);
+  }
+}
+
+// FILE: js/gallery.js
+class GalleryManager {
+  constructor() {
+    this.modal = document.getElementById('gallery-modal');
+    this.grid = document.getElementById('gallery-grid');
+    this.closeBtn = document.getElementById('gallery-close');
+    this.galleryBtn = document.getElementById('gallery-btn');
+    this.setupListeners();
+    this.loadPhotos();
+  }
+  
+  setupListeners() {
+    this.galleryBtn.addEventListener('click', () => this.open());
+    this.closeBtn.addEventListener('click', () => this.close());
+    this.modal.addEventListener('click', (e) => {
+      if (e.target === this.modal) this.close();
+    });
+    window.addEventListener('photoSaved', () => this.loadPhotos());
+  }
+  
+  loadPhotos() {
+    try {
+      const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+      this.grid.innerHTML = '';
+      photos.forEach(photo => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        item.innerHTML = `<img src="${photo.data}" alt="photo">`;
+        item.addEventListener('click', () => this.previewPhoto(photo.data));
+        this.grid.appendChild(item);
+      });
+    } catch (e) {
+      console.error('Load photos error:', e);
+    }
+  }
+  
+  previewPhoto(dataUrl) {
+    const img = new Image();
+    img.src = dataUrl;
+    const w = window.open('');
+    w.document.write(img.outerHTML);
+  }
+  
+  open() {
+    this.modal.classList.add('active');
+  }
+  
+  close() {
+    this.modal.classList.remove('active');
+  }
+}
+
+// FILE: js/ui.js
+class UIManager {
+  constructor(cameraManager) {
+    this.camera = cameraManager;
+    this.sliders = {
+      brightness: document.getElementById('brightness-slider'),
+      contrast: document.getElementById('contrast-slider'),
+      saturation: document.getElementById('saturation-slider'),
+      exposure: document.getElementById('exposure-slider')
+    };
+    this.values = {
+      brightness: document.getElementById('brightness-value'),
+      contrast: document.getElementById('contrast-value'),
+      saturation: document.getElementById('saturation-value'),
+      exposure: document.getElementById('exposure-value')
+    };
+    this.filterBtns = document.querySelectorAll('.filter-btn');
+    this.cameraSwitchBtn = document.getElementById('camera-switch-btn');
+    this.setupListeners();
+  }
+  
+  setupListeners() {
+    Object.entries(this.sliders).forEach(([key, slider]) => {
+      slider.addEventListener('input', (e) => this.handleSliderChange(key, e));
+    });
+    
+    this.filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => this.handleFilterChange(e));
+    });
+    
+    this.cameraSwitchBtn.addEventListener('click', () => {
+      this.cameraSwitchBtn.style.transform = 'rotate(180deg)';
+      this.camera.switchCamera();
+      setTimeout(() => {
+        this.cameraSwitchBtn.style.transform = 'rotate(0deg)';
+      }, 300);
+    });
+  }
+  
+  handleSliderChange(key, event) {
+    const value = parseInt(event.target.value);
+    this.values[key].textContent = value;
+    this.camera.updateSetting(key, value);
+    this.updateSliderFill(event.target);
+  }
+  
+  handleFilterChange(event) {
+    const btn = event.target;
+    const filter = btn.dataset.filter;
+    
+    this.filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    this.camera.updateFilter(filter);
+  }
+  
+  updateSliderFill(slider) {
+    const value = (parseInt(slider.value) + 100) / 200;
+    const fill = slider.parentElement.querySelector('.slider-fill');
+    if (fill) {
+      fill.style.width = (value * 100) + '%';
+    }
+  }
+  
+  resetControls() {
+    Object.entries(this.sliders).forEach(([key, slider]) => {
+      slider.value = 0;
+      this.values[key].textContent = 0;
+      this.updateSliderFill(slider);
+      this.camera.updateSetting(key, 0);
+    });
+  }
+}
+
+// FILE: js/app.js
+let cameraManager;
+let captureManager;
+let galleryManager;
+let uiManager;
+
+async function initApp() {
+  const videoElement = document.getElementById('camera-feed');
+  const canvasElement = document.getElementById('canvas-filter');
+  
+  cameraManager = new CameraManager(videoElement, canvasElement);
+  await cameraManager.initialize();
+  
+  captureManager = new CaptureManager(cameraManager);
+  galleryManager = new GalleryManager();
+  uiManager = new UIManager(cameraManager);
+  
+  setupKeyboardControls();
+}
+
+function setupKeyboardControls() {
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      captureManager.capture();
+    }
+  });
+}
+
+window.addEventListener('load', initApp);
+window.addEventListener('beforeunload', () => {
+  if (cameraManager) cameraManager.stop();
+});
